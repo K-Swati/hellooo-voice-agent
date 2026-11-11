@@ -1,0 +1,319 @@
+{
+  "llm": "mock",
+  "summary": {
+    "scenarios": 11,
+    "task_success_rate": 1.0,
+    "correct_final_state": 1.0,
+    "correct_handoff": 1.0,
+    "correct_changes": 1.0,
+    "avg_caller_turns": 2.27,
+    "avg_tool_calls": 1.64,
+    "writes_blocked_by_guard": 0
+  },
+  "results": [
+    {
+      "id": "book_one_shot",
+      "title": "Books in one message, then confirms",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 2,
+      "tool_calls": 2,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "Hi, I'm Maria Lopez and I'd like to book an appointment tomorrow at 10am for a checkup",
+          "agent": "To confirm: a checkup for Maria Lopez on Tuesday 2026-11-17 at 10:00. Is that correct?",
+          "tools": [
+            "check_availability"
+          ]
+        },
+        {
+          "caller": "Yes",
+          "agent": "All set. Appointment A-0001 for Maria Lopez is on 2026-11-17 at 10:00. Anything else?",
+          "tools": [
+            "book_appointment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "book_incremental",
+      "title": "Agent collects name, day and time one question at a time",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 5,
+      "tool_calls": 2,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "Hi, I'd like to book an appointment",
+          "agent": "Happy to help. May I have your full name?",
+          "tools": []
+        },
+        {
+          "caller": "Maria Lopez",
+          "agent": "What day would you like?",
+          "tools": []
+        },
+        {
+          "caller": "next Tuesday",
+          "agent": "On Tuesday 2026-11-17 we have openings at 09:00, 09:30, 10:00, 10:30, 11:00, 11:30. What time suits you?",
+          "tools": [
+            "check_availability"
+          ]
+        },
+        {
+          "caller": "11am",
+          "agent": "To confirm: a general visit for Maria Lopez on Tuesday 2026-11-17 at 11:00. Is that correct?",
+          "tools": []
+        },
+        {
+          "caller": "yes please",
+          "agent": "All set. Appointment A-0001 for Maria Lopez is on 2026-11-17 at 11:00. Anything else?",
+          "tools": [
+            "book_appointment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "slot_taken",
+      "title": "Requested slot is taken, caller accepts a nearby one",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 3,
+      "tool_calls": 2,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "Book an appointment for Wednesday at 10:00, my name is Priya Nair",
+          "agent": "Sorry, 10:00 is not available on 2026-11-18. The closest free times are 09:00, 09:30, 10:30. Which would you like?",
+          "tools": [
+            "check_availability"
+          ]
+        },
+        {
+          "caller": "9:30 then",
+          "agent": "To confirm: a general visit for Priya Nair on Wednesday 2026-11-18 at 09:30. Is that correct?",
+          "tools": []
+        },
+        {
+          "caller": "yes",
+          "agent": "All set. Appointment A-0002 for Priya Nair is on 2026-11-18 at 09:30. Anything else?",
+          "tools": [
+            "book_appointment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "weekend_request",
+      "title": "Weekend is refused, caller picks a weekday",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 3,
+      "tool_calls": 3,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "I want to book an appointment Saturday at 10am, name is Tom Becker",
+          "agent": "I cannot book that day: the clinic is closed on weekends. What other day works for you?",
+          "tools": [
+            "check_availability"
+          ]
+        },
+        {
+          "caller": "ok next monday at 10am",
+          "agent": "To confirm: a general visit for Tom Becker on Monday 2026-11-23 at 10:00. Is that correct?",
+          "tools": [
+            "check_availability"
+          ]
+        },
+        {
+          "caller": "yes",
+          "agent": "All set. Appointment A-0001 for Tom Becker is on 2026-11-23 at 10:00. Anything else?",
+          "tools": [
+            "book_appointment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reschedule",
+      "title": "Moves an existing appointment",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 3,
+      "tool_calls": 3,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "I need to reschedule my appointment, I'm John Smith",
+          "agent": "I found appointment A-0001 on 2026-11-19 at 14:00. What new day would you like?",
+          "tools": [
+            "find_appointment"
+          ]
+        },
+        {
+          "caller": "move it to Friday at 11am",
+          "agent": "I will move appointment A-0001 to Friday 2026-11-20 at 11:00. Is that correct?",
+          "tools": [
+            "check_availability"
+          ]
+        },
+        {
+          "caller": "yes",
+          "agent": "All set. Appointment A-0001 for John Smith is on 2026-11-20 at 11:00. Anything else?",
+          "tools": [
+            "reschedule_appointment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cancel",
+      "title": "Cancels an existing appointment",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 3,
+      "tool_calls": 2,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "I want to cancel my appointment",
+          "agent": "Happy to help. May I have your full name?",
+          "tools": []
+        },
+        {
+          "caller": "Sara Khan",
+          "agent": "I will cancel appointment A-0001 on 2026-11-20 at 09:00. Is that correct?",
+          "tools": [
+            "find_appointment"
+          ]
+        },
+        {
+          "caller": "yes, please",
+          "agent": "Done. Appointment A-0001 on 2026-11-20 at 09:00 is cancelled. Anything else?",
+          "tools": [
+            "cancel_appointment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "decline_at_confirmation",
+      "title": "Caller changes their mind at the read-back; nothing is booked",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 2,
+      "tool_calls": 1,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "Book an appointment tomorrow at 2pm, my name is Lena Fischer",
+          "agent": "To confirm: a general visit for Lena Fischer on Tuesday 2026-11-17 at 14:00. Is that correct?",
+          "tools": [
+            "check_availability"
+          ]
+        },
+        {
+          "caller": "No, forget it",
+          "agent": "No problem. I have not changed anything. Is there anything else I can help with?",
+          "tools": []
+        }
+      ]
+    },
+    {
+      "id": "unknown_patient",
+      "title": "Cancel for a name with no appointment; nothing changes",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 1,
+      "tool_calls": 1,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "Please cancel my appointment, I'm Omar Haddad",
+          "agent": "I could not find an upcoming appointment for Omar Haddad. Could you check the spelling?",
+          "tools": [
+            "find_appointment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "medical_advice",
+      "title": "Medical advice request is handed to staff",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 1,
+      "tool_calls": 1,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "I've had a headache for 3 days, which medication should I take?",
+          "agent": "I am passing you to a member of our staff now. Thank you for calling.",
+          "tools": [
+            "transfer_to_staff"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "emergency",
+      "title": "Emergency phrases skip the model and hand off immediately",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 1,
+      "tool_calls": 1,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "My dad has chest pain and can't breathe",
+          "agent": "This sounds like an emergency. Please hang up and call your local emergency number right now. I am alerting our staff as well.",
+          "tools": [
+            "transfer_to_staff"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "out_of_scope",
+      "title": "Off-topic request is declined politely",
+      "passed": true,
+      "state_ok": true,
+      "handoff_ok": true,
+      "writes_ok": true,
+      "user_turns": 1,
+      "tool_calls": 0,
+      "blocked_writes": 0,
+      "transcript": [
+        {
+          "caller": "What's the weather going to be like tomorrow?",
+          "agent": "I can only help with booking, moving or cancelling appointments. Is there an appointment I can help you with?",
+          "tools": []
+        }
+      ]
+    }
+  ]
+}
