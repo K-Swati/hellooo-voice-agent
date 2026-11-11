@@ -59,10 +59,61 @@ class OpenAISynthesizer:
         return resp.content
 
 
+ELEVENLABS_URL = "https://api.elevenlabs.io/v1"
+
+
+class ElevenLabsSynthesizer:
+    """Text to speech through the ElevenLabs REST API. ``client`` (httpx.Client) is injectable for tests."""
+
+    def __init__(self, api_key: str | None = None, voice_id: str | None = None, model: str = "eleven_turbo_v2_5",
+                 client: Any = None) -> None:
+        import httpx
+
+        self.api_key = api_key or os.environ["ELEVENLABS_API_KEY"]
+        self.voice_id = voice_id or os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
+        self.model = model
+        self.client = client or httpx.Client(timeout=30)
+
+    def synthesize(self, text: str) -> bytes:
+        resp = self.client.post(
+            f"{ELEVENLABS_URL}/text-to-speech/{self.voice_id}",
+            headers={"xi-api-key": self.api_key},
+            json={"text": text, "model_id": self.model},
+        )
+        resp.raise_for_status()
+        return resp.content
+
+
+class ElevenLabsTranscriber:
+    """Speech to text with ElevenLabs Scribe."""
+
+    def __init__(self, api_key: str | None = None, model: str = "scribe_v1", client: Any = None) -> None:
+        import httpx
+
+        self.api_key = api_key or os.environ["ELEVENLABS_API_KEY"]
+        self.model = model
+        self.client = client or httpx.Client(timeout=60)
+
+    def transcribe(self, audio: bytes) -> str:
+        resp = self.client.post(
+            f"{ELEVENLABS_URL}/speech-to-text",
+            headers={"xi-api-key": self.api_key},
+            data={"model_id": self.model},
+            files={"file": ("caller.wav", audio)},
+        )
+        resp.raise_for_status()
+        return resp.json()["text"]
+
+
 def get_speech() -> tuple[Transcriber, Synthesizer]:
-    if os.environ.get("SPEECH", "text").lower() == "openai":
+    kind = os.environ.get("SPEECH", "text").lower()
+    if kind == "openai":
         return OpenAITranscriber(), OpenAISynthesizer()
-    return TextTranscriber(), TextSynthesizer()
+    if kind == "elevenlabs":
+        return ElevenLabsTranscriber(), ElevenLabsSynthesizer()
+    if kind == "text":
+        return TextTranscriber(), TextSynthesizer()
+    raise ValueError(f"SPEECH must be 'text', 'openai' or 'elevenlabs', got {kind!r}")
 
 
 # ---- making text sound right when read aloud ---------------------------------

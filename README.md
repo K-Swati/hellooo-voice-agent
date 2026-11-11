@@ -17,7 +17,7 @@ A phone-style receptionist that books, moves and cancels clinic appointments by 
 - **Tool calling with validation**: six tools (check availability, find, book, cancel, reschedule, transfer to staff). Every failure comes back as a structured error with alternatives, so the model can recover instead of guessing
 - **Rules in code, not in the prompt**: weekdays only, opening hours, 30-minute slots, booking horizon, no double booking. The model cannot break them even if it tries
 - **Guardrails**: any change to the calendar is blocked unless the caller's latest message is a clear yes; emergency phrases bypass the model and hand off immediately; a step limit stops tool loops; malformed arguments cannot crash a call
-- **Voice layer**: Whisper speech-to-text and TTS wrappers, plus `to_speech_text` so replies are *spoken* well (`2026-11-17` becomes "Tuesday, November 17", `14:30` becomes "2:30 PM", `A-0001` becomes "A 0 0 0 1")
+- **Voice layer**: pluggable speech providers (ElevenLabs, OpenAI Whisper/TTS, or offline text), plus `to_speech_text` so replies are *spoken* well (`2026-11-17` becomes "Tuesday, November 17", `14:30` becomes "2:30 PM", `A-0001` becomes "A 0 0 0 1")
 - **Evaluation**: 11 scripted caller scenarios scored on final calendar state, handoff and changes made
 - Runs fully offline for tests and CI; FastAPI, Docker, GitHub Actions
 
@@ -25,7 +25,7 @@ A phone-style receptionist that books, moves and cancels clinic appointments by 
 
 ```bash
 pip install -r requirements-dev.txt
-pytest -q                          # 85 tests, offline
+pytest -q                          # 87 tests, offline
 python -m clinic_agent simulate    # writes reports/simulation.md
 python -m clinic_agent chat        # talk to it in the terminal
 python -m clinic_agent serve       # http://localhost:8000/docs
@@ -52,9 +52,11 @@ curl -s localhost:8000/sessions/$SID/voice --data-binary @caller.wav     # with 
 
 ```bash
 export OPENAI_API_KEY=sk-...
-export LLM=openai SPEECH=openai
+export LLM=openai SPEECH=openai          # or SPEECH=elevenlabs with ELEVENLABS_API_KEY
 python -m clinic_agent simulate     # the same 11 scenarios, scored against the real model
 ```
+
+Speech and the language model are separate settings. For example, `SPEECH=elevenlabs` gives more natural voices while the reasoning model stays whatever `LLM` is set to. No key is needed for the default offline mode.
 
 ## How the guardrails are tested
 
@@ -82,16 +84,16 @@ clinic_agent/
   guardrails.py  emergency detection, yes/no detection, confirmation marker
   agent.py       tool-calling loop, write guard, step limit, handoff
   llm.py         OpenAI function-calling client and the offline MockLLM
-  voice.py       Whisper / TTS wrappers, offline text passthrough, spoken-text rendering
+  voice.py       ElevenLabs / OpenAI speech wrappers, offline text passthrough, spoken-text rendering
   simulator.py   scenarios, scoring, report writer
   api.py         FastAPI: sessions, /chat, /voice, appointments
-tests/           85 tests
+tests/           87 tests
 ```
 
 ## Honest limitations
 
 - **No live phone line.** Voice is file or byte based (`POST /voice` with audio bytes). Real telephony (Twilio, WebRTC streaming) and low-latency streaming STT and TTS are not included, and end-to-end latency was never measured
-- **`MockLLM` is a test double**, narrow by design (see above). OpenAI paths are unit-tested with fake clients, not against the live API
+- **`MockLLM` is a test double**, narrow by design (see above). OpenAI and ElevenLabs paths are unit-tested with fake clients and mocked HTTP, not against the live APIs
 - Offline "audio" is UTF-8 text, so speech recognition errors, accents and background noise are not exercised
 - The emergency check is a keyword list: it will miss unusual wording and could trigger on rare phrases. A production system would add a classifier and clinical review
 - The calendar is in memory, single process, one clinic, no time zones, no patient identity check, no reminders. Sessions are lost on restart, and the API has no authentication

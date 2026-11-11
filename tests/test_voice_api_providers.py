@@ -89,3 +89,43 @@ def test_http_voice():
 
 def test_agent_class_importable():
     assert Agent
+
+
+def test_elevenlabs_wrappers_with_mocked_http():
+    import httpx
+
+    from clinic_agent.voice import ElevenLabsSynthesizer, ElevenLabsTranscriber
+
+    seen = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen.append(req)
+        if "text-to-speech" in req.url.path:
+            return httpx.Response(200, content=b"mp3-bytes")
+        return httpx.Response(200, json={"text": "hello there"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert ElevenLabsSynthesizer("k", "voice1", client=client).synthesize("hi") == b"mp3-bytes"
+    assert ElevenLabsTranscriber("k", client=client).transcribe(b"wav") == "hello there"
+    assert seen[0].headers["xi-api-key"] == "k" and seen[0].url.path.endswith("/text-to-speech/voice1")
+    assert seen[1].url.path.endswith("/speech-to-text")
+    failing = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(401)))
+    import pytest
+
+    with pytest.raises(httpx.HTTPStatusError):
+        ElevenLabsSynthesizer("bad", "v", client=failing).synthesize("hi")
+
+
+def test_get_speech_selection(monkeypatch):
+    import pytest
+
+    from clinic_agent.voice import ElevenLabsSynthesizer, TextTranscriber, get_speech
+
+    monkeypatch.setenv("SPEECH", "text")
+    assert isinstance(get_speech()[0], TextTranscriber)
+    monkeypatch.setenv("SPEECH", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "k")
+    assert isinstance(get_speech()[1], ElevenLabsSynthesizer)
+    monkeypatch.setenv("SPEECH", "nope")
+    with pytest.raises(ValueError):
+        get_speech()
